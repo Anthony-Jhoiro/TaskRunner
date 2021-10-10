@@ -10,32 +10,40 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package main
+package controllers
 
 import (
-	"embed"
-	"github.com/gin-contrib/static"
-	"io/fs"
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"log"
 	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
-type embedFileSystem struct {
-	http.FileSystem
+func setupPingRouter() *gin.Engine {
+	app := gin.Default()
+	apiRouter := app.Group("/api/v0")
+	{
+		PingRouter(apiRouter)
+	}
+	return app
 }
 
-// Exists check if a file exists in an embed file system
-func (e embedFileSystem) Exists(_ string, path string) bool {
-	_, err := e.Open(path)
-	return err == nil
-}
-
-// EmbedFolder embed a static folder in the app compiled binary
-func EmbedFolder(fsEmbed embed.FS, targetPath string) static.ServeFileSystem {
-	fileSystem, err := fs.Sub(fsEmbed, targetPath)
+func TestPingRouter(t *testing.T) {
+	ginApp := setupPingRouter()
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/api/v0/ping", nil)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error creating the request %v\n", err)
 	}
-	return embedFileSystem{
-		FileSystem: http.FS(fileSystem),
-	}
+	ginApp.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+	var res map[string]interface{}
+	assert.NoError(t, json.NewDecoder(w.Body).Decode(&res))
+
+	assert.Equal(t, "pong", res["message"])
 }

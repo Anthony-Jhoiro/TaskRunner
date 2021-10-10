@@ -14,6 +14,7 @@ package main
 
 import (
 	"embed"
+	"github.com/Anthony-Jhoiro/TaskRunner/server/api"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -27,23 +28,21 @@ import (
 var nextFS embed.FS
 
 func main() {
-
 	router := gin.Default()
 
+	// Serve the Front-End by default
 	router.Use(static.Serve("/", EmbedFolder(nextFS, "client/dist")))
 
-	// Serve API
-	router.GET("/api", func(context *gin.Context) {
-		context.String(200, "Hello World")
-	})
+	// Serve API client
+	apiRouter := router.Group("/api")
+	api.LoadRouter(apiRouter)
 
-	router.NoRoute()
-
+	// Get the port used by the server
 	port := os.Getenv("PORT")
-
 	if port == "" {
 		port = "8080"
 	}
 
+	// Run the application
 	log.Fatal(router.Run(":" + port))
 }

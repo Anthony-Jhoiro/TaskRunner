@@ -10,32 +10,24 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package main
+package controllers
 
 import (
-	"embed"
-	"github.com/gin-contrib/static"
-	"io/fs"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
-type embedFileSystem struct {
-	http.FileSystem
+func PingRouter(router *gin.RouterGroup) {
+	ping := router.Group("/ping")
+	{
+		ping.GET("", pingHandler)
+	}
 }
 
-// Exists check if a file exists in an embed file system
-func (e embedFileSystem) Exists(_ string, path string) bool {
-	_, err := e.Open(path)
-	return err == nil
+type pingResponse struct {
+	Message string `json:"message"`
 }
 
-// EmbedFolder embed a static folder in the app compiled binary
-func EmbedFolder(fsEmbed embed.FS, targetPath string) static.ServeFileSystem {
-	fileSystem, err := fs.Sub(fsEmbed, targetPath)
-	if err != nil {
-		panic(err)
-	}
-	return embedFileSystem{
-		FileSystem: http.FS(fileSystem),
-	}
+func pingHandler(c *gin.Context) {
+	msg := pingResponse{"pong"}
+	c.JSON(200, msg)
 }
