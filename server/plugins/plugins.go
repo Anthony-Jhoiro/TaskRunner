@@ -10,42 +10,46 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package main
+package plugins
 
 import (
-	"embed"
-	"github.com/Anthony-Jhoiro/TaskRunner/server/api"
-	"github.com/Anthony-Jhoiro/TaskRunner/server/plugins"
-	"github.com/gin-contrib/static"
-	"github.com/gin-gonic/gin"
 	"log"
-	"os"
+	"plugin"
 )
 
-//go:embed client/dist
-//go:embed client/dist/_next
-//go:embed client/dist/_next/static/chunks/pages/*.js
-//go:embed client/dist/_next/static/*/*.js
-var nextFS embed.FS
+type Plugin plugin.Plugin
 
-func main() {
-	log.Printf("RunPlugin : %s", plugins.RunPlugin())
+type Event struct {
+	Name string
+}
 
-	router := gin.Default()
+type TaskContext struct {
+	TaskName string
+	Args     []string
+}
 
-	// Serve the Front-End by default
-	router.Use(static.Serve("/", EmbedFolder(nextFS, "client/dist")))
+func B(v string) {
+	log.Printf("Here ! %s\n", v)
+}
 
-	// Serve API client
-	apiRouter := router.Group("/api")
-	api.LoadRouter(apiRouter)
+func A(v string) interface{} {
+	B(v)
+	return nil
 
-	// Get the port used by the server
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+}
+
+func RunPlugin() string {
+	p, err := plugin.Open("plugins/TestPlugin.so")
+	if err != nil {
+		return "Fail to launch plugin plugins/TaskRunner_TestPlugin.so : [" + err.Error() + "]"
 	}
+	log.Print("plugin launched\n")
 
-	// Run the application
-	log.Fatal(router.Run(":" + port))
+	onEvent, err := p.Lookup("TestCallback")
+
+	onEvent.(func(callback func(v string) interface{}))(A)
+
+	return "porte"
+	//return onEvent.(func(e string) interface{})("hey").(string)
+
 }
